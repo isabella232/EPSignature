@@ -8,10 +8,10 @@
 
 import UIKit
 
-    // MARK: - EPSignatureDelegate
-@objc public protocol EPSignatureDelegate {
-    @objc optional    func epSignature(_: EPSignatureViewController, didCancel error : NSError)
-    @objc optional    func epSignature(_: EPSignatureViewController, didSign signatureImage : UIImage, boundingRect: CGRect)
+    // MARK: - EPSignatureViewController
+@objc public protocol EPSignatureViewControllerDelegate {
+    @objc optional func epSignatureViewController(_ controller: EPSignatureViewController, didCancel error: NSError)
+    @objc optional func epSignatureViewController(_ controller: EPSignatureViewController, didSign signatureImage: UIImage, boundingRect: CGRect)
 }
 
 open class EPSignatureViewController: UIViewController {
@@ -30,8 +30,11 @@ open class EPSignatureViewController: UIViewController {
     
     open var showsDate: Bool = true
     open var showsSaveSignatureOption: Bool = true
-    open weak var signatureDelegate: EPSignatureDelegate?
+    open weak var delegate: EPSignatureViewControllerDelegate?
     open var subtitleText = "Sign Here"
+    open var titleColor = UIColor.defaultTintColor()
+    open var navigationFont: UIFont?
+    open var subtitleColor = UIColor.defaultTintColor()
     open var tintColor = UIColor.defaultTintColor()
 
     // MARK: - Life cycle methods
@@ -41,11 +44,11 @@ open class EPSignatureViewController: UIViewController {
 
         let cancelButton = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.cancel, target: self, action: #selector(EPSignatureViewController.onTouchCancelButton))
         cancelButton.tintColor = tintColor
-        self.navigationItem.leftBarButtonItem = cancelButton
+        navigationItem.leftBarButtonItem = cancelButton
         
-        let doneButton = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.done, target: self, action: #selector(EPSignatureViewController.onTouchDoneButton))
+        let doneButton = UIBarButtonItem(title: "Done", style: .plain, target: self, action: #selector(EPSignatureViewController.onTouchDoneButton))
         doneButton.tintColor = tintColor
-        let clearButton = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.trash, target: self, action: #selector(EPSignatureViewController.onTouchClearButton))
+        let clearButton = UIBarButtonItem(title: "Clear", style: .plain, target: self, action: #selector(EPSignatureViewController.onTouchClearButton))
         clearButton.tintColor = tintColor
         
         if showsDate {
@@ -60,15 +63,24 @@ open class EPSignatureViewController: UIViewController {
         if showsSaveSignatureOption {
             let actionButton = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.action, target:   self, action: #selector(EPSignatureViewController.onTouchActionButton(_:)))
             actionButton.tintColor = tintColor
-            self.navigationItem.rightBarButtonItems = [doneButton, clearButton, actionButton]
+            navigationItem.rightBarButtonItems = [doneButton, clearButton, actionButton]
             switchSaveSignature.onTintColor = tintColor
         } else {
-            self.navigationItem.rightBarButtonItems = [doneButton, clearButton]
+            navigationItem.rightBarButtonItems = [doneButton, clearButton]
             lblDefaultSignature.isHidden = true
             switchSaveSignature.isHidden = true
         }
         
+        if let navigationFont = navigationFont {
+            cancelButton.setTitleTextAttributes([NSAttributedStringKey.font: navigationFont], for: .normal)
+            doneButton.setTitleTextAttributes([NSAttributedStringKey.font: navigationFont], for: .normal)
+            clearButton.setTitleTextAttributes([NSAttributedStringKey.font: navigationFont], for: .normal)
+            lblSignatureSubtitle.font = navigationFont
+            navigationController?.navigationBar.titleTextAttributes = [NSAttributedStringKey.font: navigationFont, NSAttributedStringKey.foregroundColor: titleColor]
+        }
+        
         lblSignatureSubtitle.text = subtitleText
+        lblSignatureSubtitle.textColor = titleColor.withAlphaComponent(0.5)
         switchSaveSignature.setOn(false, animated: true)
     }
     
@@ -79,18 +91,13 @@ open class EPSignatureViewController: UIViewController {
     
     // MARK: - Initializers
     
-    public convenience init(signatureDelegate: EPSignatureDelegate) {
-        self.init(signatureDelegate: signatureDelegate, showsDate: true, showsSaveSignatureOption: true)
+    public convenience init(showsDate: Bool) {
+        self.init(showsDate: showsDate, showsSaveSignatureOption: true)
     }
     
-    public convenience init(signatureDelegate: EPSignatureDelegate, showsDate: Bool) {
-        self.init(signatureDelegate: signatureDelegate, showsDate: showsDate, showsSaveSignatureOption: true)
-    }
-    
-    public init(signatureDelegate: EPSignatureDelegate, showsDate: Bool, showsSaveSignatureOption: Bool ) {
+    public init(showsDate: Bool, showsSaveSignatureOption: Bool) {
         self.showsDate = showsDate
         self.showsSaveSignatureOption = showsSaveSignatureOption
-        self.signatureDelegate = signatureDelegate
         let bundle = Bundle(for: EPSignatureViewController.self)
         super.init(nibName: "EPSignatureViewController", bundle: bundle)
     }
@@ -102,7 +109,7 @@ open class EPSignatureViewController: UIViewController {
     // MARK: - Button Actions
     
     @objc func onTouchCancelButton() {
-        signatureDelegate?.epSignature!(self, didCancel: NSError(domain: "EPSignatureDomain", code: 1, userInfo: [NSLocalizedDescriptionKey:"User not signed"]))
+        delegate?.epSignatureViewController?(self, didCancel: NSError(domain: "EPSignatureDomain", code: 1, userInfo: [NSLocalizedDescriptionKey:"User not signed"]))
         dismiss(animated: true, completion: nil)
     }
 
@@ -113,7 +120,7 @@ open class EPSignatureViewController: UIViewController {
                 let filePath = (docPath! as NSString).appendingPathComponent("sig.data")
                 signatureView.saveSignature(filePath)
             }
-            signatureDelegate?.epSignature!(self, didSign: signature, boundingRect: signatureView.getSignatureBoundsInCanvas())
+            delegate?.epSignatureViewController?(self, didSign: signature, boundingRect: signatureView.getSignatureBoundsInCanvas())
             dismiss(animated: true, completion: nil)
         } else {
             showAlert("You did not sign", andTitle: "Please draw your signature")

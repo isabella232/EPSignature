@@ -28,14 +28,14 @@ open class EPSignatureView: UIView {
     
     required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
-        self.backgroundColor = UIColor.clear
+        backgroundColor = UIColor.clear
         bezierPath.lineWidth = strokeWidth
         addLongPressGesture()
     }
     
     public override init(frame: CGRect) {
         super.init(frame: frame)
-        self.backgroundColor = UIColor.clear
+        backgroundColor = UIColor.clear
         bezierPath.lineWidth = strokeWidth
         addLongPressGesture()
     }
@@ -116,8 +116,8 @@ open class EPSignatureView: UIView {
     /** scales and repositions the path
      */
     open func reposition() {
-        var ratio =  min(self.bounds.width / bezierPath.bounds.width, 1)
-        ratio =  min((self.bounds.height - 64) / bezierPath.bounds.height, ratio)
+        var ratio =  min(bounds.width / bezierPath.bounds.width, 1)
+        ratio =  min((bounds.height - 64) / bezierPath.bounds.height, ratio)
         bezierPath.apply(CGAffineTransform(scaleX: ratio, y: ratio))
         setNeedsDisplay()
     }
@@ -126,7 +126,7 @@ open class EPSignatureView: UIView {
      */
     open func getSignatureAsImage() -> UIImage? {
         if isSigned {
-            UIGraphicsBeginImageContext(CGSize(width: self.bounds.size.width, height: self.bounds.size.height))
+            UIGraphicsBeginImageContext(CGSize(width: bounds.size.width, height: bounds.size.height))
             self.layer.render(in: UIGraphicsGetCurrentContext()!)
             let signature: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
             UIGraphicsEndImageContext()
